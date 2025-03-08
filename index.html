@@ -44,6 +44,19 @@
         }
       }
       
+      const matchEndBang = trimmedQuery.match(/(.+)\s+!(\w+)$/);
+      if (matchEndBang) {
+        const searchTerm = matchEndBang[1].trim();
+        const bangCode = matchEndBang[2];
+        
+        const bang = bangs.find(b => b.t.toLowerCase() === bangCode.toLowerCase());
+        if (bang) {
+          const redirectURL = bang.u.replace('{{{s}}}', encodeURIComponent(searchTerm));
+          window.location.replace(redirectURL);
+          return;
+        }
+      }
+      
       window.location.replace('https://www.google.com/search?q=' + encodeURIComponent(queryParam));
     })();
   </script>
