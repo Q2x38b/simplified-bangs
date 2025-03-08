@@ -2,74 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Custom Bangs Search Redirect</title>
-  <link rel="modulepreload" href="./bang.js">
-  <style>
-    body { display: none; margin: 0; padding: 0; }
-  </style>
+  <title>Redirect</title>
   <script type="module">
     import { bangs } from './bang.js';
-    
-    function getParameterByName(name, url = window.location.href) {
-      name = name.replace(/[\[\]]/g, '\\$&');
-      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-            results = regex.exec(url);
-      if (!results) return null;
-      if (!results[2]) return '';
-      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    const url = new URL(window.location.href);
+    const query = url.searchParams.get("q")?.trim() ?? "";
+
+    if (query) {
+      const match = query.match(/!(\S+)/i);
+      const bangCandidate = match?.[1]?.toLowerCase();
+      const selectedBang = bangs.find(b => b.t === bangCandidate) || bangs.find(b => b.t === 'g');
+      if (selectedBang) {
+        const cleanQuery = query.replace(/!\S+\s*/i, "").trim();
+        const searchUrl = selectedBang.u.replace('{{{s}}}', encodeURIComponent(cleanQuery));
+        window.location.replace(searchUrl);
+      }
     }
-    
-    window.getParameterByName = getParameterByName;
-    
-    (function redirect() {
-      const queryParam = getParameterByName('q');
-      if (!queryParam) {
-        document.body.style.display = '';
-        return;
-      }
-      
-      const trimmedQuery = queryParam.trim();
-      
-      if (trimmedQuery.startsWith('!')) {
-        const withoutBang = trimmedQuery.slice(1);
-        const parts = withoutBang.split(/\s+/);
-        const bangCode = parts[0];
-        const searchTerm = parts.slice(1).join(' ');
-        
-        const bang = bangs.find(b => b.t.toLowerCase() === bangCode.toLowerCase());
-        if (bang) {
-          const redirectURL = bang.u.replace('{{{s}}}', encodeURIComponent(searchTerm));
-          window.location.replace(redirectURL);
-          return;
-        }
-      }
-      
-      const matchEndBang = trimmedQuery.match(/(.+)\s+!(\w+)$/);
-      if (matchEndBang) {
-        const searchTerm = matchEndBang[1].trim();
-        const bangCode = matchEndBang[2];
-        
-        const bang = bangs.find(b => b.t.toLowerCase() === bangCode.toLowerCase());
-        if (bang) {
-          const redirectURL = bang.u.replace('{{{s}}}', encodeURIComponent(searchTerm));
-          window.location.replace(redirectURL);
-          return;
-        }
-      }
-      
-      window.location.replace('https://www.google.com/search?q=' + encodeURIComponent(queryParam));
-    })();
   </script>
 </head>
 <body>
-  <noscript>
-    <p>JavaScript is required for this search engine to function.</p>
-  </noscript>
-  <p>If you are not redirected automatically, <a id="fallbackLink" href="#">click here</a>.</p>
-  <script>
-    const queryParam = window.getParameterByName('q') || '';
-    document.getElementById('fallbackLink').href = 'https://www.google.com/search?q=' + encodeURIComponent(queryParam);
-    document.body.style.display = '';
-  </script>
 </body>
 </html>
