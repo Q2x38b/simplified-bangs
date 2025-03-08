@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Und*ck</title>
+  <title>Simplified Bangs</title>
   <link rel="modulepreload" href="./bang.js">
   <style>
     body { display: none; margin: 0; padding: 0; }
@@ -29,7 +29,7 @@
     h1 {
       font-size: 3rem;
       margin-bottom: 10px;
-      font-weight: bold;
+      font-weight: 500;
       color: #303030;
     }
     
@@ -60,9 +60,14 @@
     .copy-button {
       background-color: #f5f5f5;
       border: none;
-      border-left: 1px solid #ddd;
       padding: 10px 15px;
       cursor: pointer;
+      transition: all 0.3ms;
+    }
+
+    .copy-button:hover {
+      transition: all 0.3s;
+      background-color: #ebebeb;
     }
     
     .footer {
@@ -76,14 +81,17 @@
       color: #666;
       text-decoration: none;
       margin: 0 5px;
+      transition: all 0.3ms;
     }
     
     a:hover {
+      transition: all 0.3ms;
       text-decoration: underline;
     }
     
     .link {
-      color: #3969ef;
+      transition: all 0.3ms;
+      color: #858585;
       text-decoration: underline;
       cursor: pointer;
     }
@@ -148,11 +156,11 @@
   </noscript>
   
   <div class="container">
-      <h1>Und*ck</h1>
+      <h1>e108 Bangs</h1>
       <p>DuckDuckGo's bang redirects are too slow. Add the following URL as a custom search engine to your browser. Enables <span class="link">all of DuckDuckGo's bangs</span>.</p>
       
       <div class="url-container">
-          <input type="text" id="urlInput" value="http://bang.e108.dev/?q=%s" readonly>
+          <input type="text" id="urlInput" value="https://bang.e108.dev/?q=%s" readonly>
           <button class="copy-button" id="copyButton">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -163,7 +171,7 @@
   </div>
   
   <div class="footer">
-      <a href="#">r3.chat</a> • <a href="#">theo</a> • <a href="#">github</a>
+      <a href="e108.dev">e108.dev</a> • <a href="https://github.com/Q2x38b">e108</a> • <a href="https://github.com/Q2x38b/simplified-bangs">github</a>
   </div>
   
   <script>
