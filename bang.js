@@ -28564,7 +28564,7 @@ export const bangs = [
     r: 57,
     s: "DuckDuckGo",
     sc: "Images",
-    t: "duckduckgo",
+    t: "ddg",
     u: "https://duckduckgo.com/?q={{{s}}}",
   },
   {
