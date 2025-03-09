@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simplified Bangs</title>
   <meta name="google-site-verification" content="avswJYiF7oygs0kPHNtSETH676b5-FWcgIE96iRejlY" />
-  <link rel="modulepreload" href="./bang.js">
+  <link rel="modulepreload" href="bang.js">
   <style>
     body { display: none; margin: 0; padding: 0; }
   </style>
@@ -102,55 +102,49 @@
   <script type="module">
     import { bangs } from './bang.js';
     
-    function getParameterByName(name, url = window.location.href) {
-      name = name.replace(/[\[\]]/g, '\\$&');
-      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
-            results = regex.exec(url);
-      if (!results) return null;
-      if (!results[2]) return '';
-      return decodeURIComponent(results[2].replace(/\+/g, ' '));
-    }
+    // Get default bang from localStorage or use 'g' as default
+    const LS_DEFAULT_BANG = localStorage.getItem("default-bang") || "g";
+    const defaultBang = bangs.find((b) => b.t === LS_DEFAULT_BANG);
     
-    window.getParameterByName = getParameterByName;
-    
-    (function redirect() {
-      const queryParam = getParameterByName('q');
-      if (!queryParam) {
+    function doRedirect() {
+      const url = new URL(window.location.href);
+      const query = url.searchParams.get('q')?.trim() || '';
+      
+      if (!query) {
+        // Show the default page if no query is provided
         document.body.style.display = '';
         return;
       }
       
-      const trimmedQuery = queryParam.trim();
+      // Look for a bang pattern in the query
+      const match = query.match(/!(\S+)/i);
+      const bangCandidate = match?.[1]?.toLowerCase();
       
-      if (trimmedQuery.startsWith('!')) {
-        const withoutBang = trimmedQuery.slice(1);
-        const parts = withoutBang.split(/\s+/);
-        const bangCode = parts[0];
-        const searchTerm = parts.slice(1).join(' ');
+      // Find the selected bang or use default
+      const selectedBang = bangs.find((b) => b.t === bangCandidate) || defaultBang;
+      
+      // Remove the first bang from the query
+      const cleanQuery = query.replace(/!\S+\s*/i, "").trim();
+      
+      if (selectedBang) {
+        // Format the search URL and replace %2F with / for formats like "!ghr+t3dotgg/unduck"
+        const searchUrl = selectedBang.u.replace(
+          "{{{s}}}",
+          encodeURIComponent(cleanQuery).replace(/%2F/g, "/")
+        );
         
-        const bang = bangs.find(b => b.t.toLowerCase() === bangCode.toLowerCase());
-        if (bang) {
-          const redirectURL = bang.u.replace('{{{s}}}', encodeURIComponent(searchTerm));
-          window.location.replace(redirectURL);
+        if (searchUrl) {
+          window.location.replace(searchUrl);
           return;
         }
       }
       
-      const matchEndBang = trimmedQuery.match(/(.+)\s+!(\w+)$/);
-      if (matchEndBang) {
-        const searchTerm = matchEndBang[1].trim();
-        const bangCode = matchEndBang[2];
-        
-        const bang = bangs.find(b => b.t.toLowerCase() === bangCode.toLowerCase());
-        if (bang) {
-          const redirectURL = bang.u.replace('{{{s}}}', encodeURIComponent(searchTerm));
-          window.location.replace(redirectURL);
-          return;
-        }
-      }
-      
-      window.location.replace('https://www.google.com/search?q=' + encodeURIComponent(queryParam));
-    })();
+      // Default to Google search if no bang is found
+      window.location.replace('https://www.google.com/search?q=' + encodeURIComponent(query));
+    }
+    
+    // Run the redirect function
+    doRedirect();
   </script>
 </head>
 <body>
