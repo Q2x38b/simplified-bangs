@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Bang Search</title>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap">
+      <style>
+         @font-face {
+         font-family: 'Satoshi';
+         src: url('fonts/Satoshi-Regular.woff') format('woff');
+         font-weight: 400;
+         font-style: normal;
+         font-display: swap;
+         }
+         @font-face {
+         font-family: 'Satoshi';
+         src: url('fonts/Satoshi-Medium.woff') format('woff');
+         font-weight: 500;
+         font-style: normal;
+         font-display: swap;
+         }
+         @font-face {
+         font-family: 'Satoshi';
+         src: url('fonts/Satoshi-Bold.woff') format('woff');
+         font-weight: 700;
+         font-style: normal;
+         font-display: swap;
+         }
+         :root {
+         --background: #141414;
+         --foreground: #ebebeb;
+         --text-primary: #d4d4d8;
+         --text-secondary: #737373;
+         --border-color: #404040;
+         --border-subtle: #262626;
+         --hover-bg: rgba(64, 64, 64, 0.2);
+         --kbd-background: #222;
+         --font-geist-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+         --font-geist-mono: "Geist Mono", monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
+         }
+         * {
+         margin: 0;
+         padding: 0;
+         box-sizing: border-box;
+         }
+         body {
+         background-color: var(--background);
+         color: var(--foreground);
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         min-height: 100vh;
+         font-family: var(--font-geist-sans);
+         -webkit-font-smoothing: antialiased;
+         -moz-osx-font-smoothing: grayscale;
+         line-height: 1.5;
+         transition: background-color 0.3s ease, color 0.3s ease;
+         padding: 1rem;
+         }
+         .container {
+         display: flex;
+         flex-direction: column;
+         width: 100%;
+         max-width: 700px;
+         height: auto; /* Changed from fixed height to auto */
+         min-height: min(250px, 40vh); /* Minimum height */
+         max-height: min(600px, 90vh); /* Maximum height */
+         background-color: var(--background);
+         border: 1px solid var(--border-color);
+         border-radius: 12px;
+         padding: clamp(1rem, 5vw, 2rem);
+         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+         animation: fadeIn 0.8s ease forwards;
+         }
+         @keyframes fadeIn {
+         from {
+         opacity: 0;
+         transform: translateY(20px);
+         }
+         to {
+         opacity: 1;
+         transform: translateY(0);
+         }
+         }
+         header {
+         text-align: center;
+         margin-bottom: clamp(1rem, 4vh, 2rem);
+         animation: fadeIn 0.5s ease forwards;
+         animation-delay: 0.1s;
+         opacity: 0;
+         }
+         h1 {
+         font-size: clamp(1.5rem, 5vw, 2.2rem);
+         color: var(--text-primary);
+         font-weight: 700;
+         letter-spacing: -0.5px;
+         font-family: var(--font-geist-sans);
+         margin-bottom: 0.5rem;
+         }
+         .description {
+         color: var(--text-secondary);
+         font-size: clamp(0.8rem, 2vw, 0.9rem);
+         margin-top: 0.5rem;
+         font-family: var(--font-geist-mono);
+         font-weight: 400;
+         opacity: 0.9;
+         }
+         input[type="text"] {
+         width: 100%;
+         padding: clamp(12px, 3vw, 16px) clamp(16px, 4vw, 24px);
+         font-size: clamp(0.9rem, 2.5vw, 1rem);
+         border: 1px solid var(--border-subtle);
+         border-radius: 8px;
+         outline: none;
+         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+         font-family: var(--font-geist-mono);
+         background-color: var(--background);
+         color: var(--text-primary);
+         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+         }
+         input[type="text"]:focus {
+         border-color: var(--text-secondary);
+         box-shadow: 0 0 0 3px rgba(115, 115, 115, 0.1);
+         }
+         input[type="text"]::placeholder {
+         color: var(--text-secondary);
+         opacity: 0.7;
+         }
+         .results {
+         flex: 1;
+         display: grid;
+         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+         max-width: 100%;
+         gap: 12px;
+         overflow-y: auto;
+         margin-top: 15px;
+         padding-right: 4px;
+         animation: fadeIn 0.5s ease forwards;
+         animation-delay: 0.3s;
+         opacity: 0;
+         min-height: 60px; /* Reduced minimum height */
+         max-height: fit-content; /* Allow container to shrink */
+         overflow-x: hidden;
+         }
+         .results::-webkit-scrollbar {
+         width: 6px;
+         }
+         .results::-webkit-scrollbar-track {
+         background: var(--background);
+         border-radius: 3px;
+         }
+         .results::-webkit-scrollbar-thumb {
+         background-color: var(--border-color);
+         border-radius: 3px;
+         }
+         .bang-chip {
+         background-color: var(--hover-bg);
+         border-radius: 8px;
+         padding: clamp(10px, 2vw, 12px) clamp(12px, 3vw, 16px);
+         display: flex;
+         align-items: center;
+         border: 1px solid var(--border-subtle);
+         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+         cursor: pointer;
+         max-width: 280px;
+         height: 60px;
+         box-sizing: border-box;
+         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+         animation: fadeInScroll 0.5s ease forwards;
+         opacity: 0;
+         transform: translateY(10px);
+         margin-bottom: 0;
+         }
+         .bang-chip:hover {
+         background-color: var(--hover-bg);
+         transform: translateY(-3px);
+         border-color: var(--border-color);
+         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+         }
+         @keyframes fadeInScroll {
+         from {
+         opacity: 0;
+         transform: translateY(10px);
+         }
+         to {
+         opacity: 1;
+         transform: translateY(0);
+         }
+         }
+         .bang-chip:nth-child(1) { animation-delay: 0.05s; }
+         .bang-chip:nth-child(2) { animation-delay: 0.1s; }
+         .bang-chip:nth-child(3) { animation-delay: 0.15s; }
+         .bang-chip:nth-child(4) { animation-delay: 0.2s; }
+         .bang-chip:nth-child(5) { animation-delay: 0.25s; }
+         .bang-chip:nth-child(6) { animation-delay: 0.3s; }
+         .bang-chip:nth-child(7) { animation-delay: 0.35s; }
+         .bang-chip:nth-child(8) { animation-delay: 0.4s; }
+         .bang-code {
+         background-color: var(--kbd-background);
+         color: var(--text-primary);
+         border-radius: 5px;
+         padding: 2px 8px;
+         margin-right: 12px;
+         font-size: clamp(11px, 2vw, 13px);
+         font-family: var(--font-geist-mono);
+         border: 1px solid var(--border-subtle);
+         transition: all 0.2s ease;
+         white-space: nowrap;
+         }
+         .bang-chip:hover .bang-code {
+         background-color: rgba(108, 99, 255, 0.2);
+         border-color: rgba(108, 99, 255, 0.3);
+         }
+         .bang-info {
+         flex: 1;
+         text-align: left;
+         overflow: hidden;
+         }
+         .bang-name {
+         font-weight: 600;
+         margin-bottom: 3px;
+         font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+         color: var(--text-primary);
+         font-family: var(--font-geist-sans);
+         transition: color 0.2s ease;
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         }
+         .bang-domain {
+         color: var(--text-secondary);
+         font-size: clamp(0.7rem, 1.8vw, 0.75rem);
+         letter-spacing: 0.2px;
+         font-family: var(--font-geist-mono);
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         }
+         .no-results {
+         grid-column: 1 / -1;
+         width: 100%;
+         text-align: center;
+         color: var(--text-secondary);
+         font-weight: 500;
+         margin-top: 1rem;
+         font-family: var(--font-geist-sans);
+         padding: clamp(1rem, 3vw, 2rem);
+         border: 1px dashed var(--border-subtle);
+         border-radius: 8px;
+         margin-bottom: 1rem;
+         background-color: var(--hover-bg);
+         font-size: clamp(0.85rem, 2.2vw, 1rem);
+         height: auto;
+         min-height: 60px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         align-self: flex-start; /* Prevents expanding the container */
+         overflow-x: hidden;
+         }
+         /* Mobile and Tablet Responsiveness */
+         @media (max-width: 1024px) {
+         .results {
+         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+         }
+         }
+         @media (max-width: 768px) {
+         .results {
+         grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+         }
+         .container {
+         padding: 1.25rem;
+         height: min(600px, 95vh);
+         }
+         }
+         @media (min-width: 481px) {
+         .results {
+         grid-template-columns: repeat(2, 1fr) !important; /* Force maximum of 2 columns */
+         }
+         }
+         @media (max-width: 480px) {
+         .results {
+         grid-template-columns: 1fr;
+         gap: 8px; /* Reduce the gap between items */
+         }
+         .container {
+         padding: 1rem;
+         height: auto; /* Allow flexible height */
+         min-height: 200px; /* Smaller minimum height on mobile */
+         max-height: min(600px, 95vh);
+         border-radius: 8px;
+         }
+         .empty-state {
+         min-height: 200px !important; /* Smaller minimum height for empty state on mobile */
+         }
+         h1 {
+         font-size: 1.6rem;
+         }
+         .description {
+         font-size: 0.8rem;
+         }
+         input[type="text"] {
+         padding: 12px 16px;
+         margin-bottom: 8px;
+         }
+         .no-results {
+         padding: 1rem;
+         font-size: 0.85rem;
+         margin-top: 8px;
+         }
+         .bang-chip {
+         height: 55px; /* Slightly smaller height on mobile */
+         margin-bottom: 0;
+         }
+         }
+         /* Handle very small screens */
+         @media (max-width: 320px) {
+         body {
+         padding: 0.5rem;
+         }
+         .container {
+         padding: 0.75rem;
+         border-radius: 6px;
+         }
+         h1 {
+         font-size: 1.4rem;
+         }
+         .bang-chip {
+         padding: 8px 12px;
+         }
+         .bang-code {
+         padding: 1px 6px;
+         margin-right: 8px;
+         font-size: 11px;
+         }
+         }
+         /* Handle landscape orientation on mobile */
+         @media (max-height: 500px) and (orientation: landscape) {
+         .container {
+         height: min(500px, 90vh);
+         }
+         header {
+         margin-bottom: 0.75rem;
+         }
+         h1 {
+         font-size: 1.5rem;
+         margin-bottom: 0.2rem;
+         }
+         .description {
+         margin-top: 0.2rem;
+         }
+         input[type="text"] {
+         padding: 10px 16px;
+         }
+         }
+         /* Handle larger screens */
+         @media (min-width: 768px) {
+         .container {
+         max-width: 650px; /* Reduced max-width to match 2 columns better */
+         }
+         }
+         @media (min-width: 1400px) {
+         .container {
+         max-width: 650px; /* Keep consistent for 2 columns */
+         }
+         }
+      </style>
+   </head>
+   <body>
+      <div class="container">
+         <header>
+            <h1>Bang Search</h1>
+            <p class="description">Find and use shortcut search commands</p>
+         </header>
+         <input type="text" id="search-input" placeholder="Search by name, code or category..." autocomplete="off">
+         <div class="results" id="results-container"></div>
+      </div>
+      <script type="module">
+         import { bangs } from './bang.js';
+         const searchInput = document.getElementById('search-input');
+         const resultsContainer = document.getElementById('results-container');
+         function createSearchIndex(bangsData) {
+             const codeIndex = new Map();
+             const nameIndex = new Map();
+             const categoryIndex = new Map();
+             const subcategoryIndex = new Map();
+             const safeString = value => typeof value === 'string' ? value : '';
+             bangsData.forEach((bang, idx) => {
+                 if (!bang || typeof bang !== 'object') return;
+                 const code = safeString(bang.t).toLowerCase();
+                 if (code) {
+                     if (!codeIndex.has(code)) codeIndex.set(code, []);
+                     codeIndex.get(code).push(idx);
+                 }
+                 const name = safeString(bang.s).toLowerCase();
+                 if (name) {
+                     name.split(' ').forEach(word => {
+                         if (word.length > 1) {
+                             if (!nameIndex.has(word)) nameIndex.set(word, []);
+                             nameIndex.get(word).push(idx);
+                         }
+                     });
+                 }
+                 const category = safeString(bang.c).toLowerCase();
+                 if (category) {
+                     category.split(' ').forEach(word => {
+                         if (word.length > 1) {
+                             if (!categoryIndex.has(word)) categoryIndex.set(word, []);
+                             categoryIndex.get(word).push(idx);
+                         }
+                     });
+                 }
+                 const subcategory = safeString(bang.sc).toLowerCase();
+                 if (subcategory) {
+                     subcategory.split(' ').forEach(word => {
+                         if (word.length > 1) {
+                             if (!subcategoryIndex.has(word)) subcategoryIndex.set(word, []);
+                             subcategoryIndex.get(word).push(idx);
+                         }
+                     });
+                 }
+             });
+             return { codeIndex, nameIndex, categoryIndex, subcategoryIndex, bangsData };
+         }
+         function searchWithIndex(index, query) {
+             if (!query || query.length < 2) return [];
+             const terms = query.toLowerCase().split(' ').filter(term => term.length > 1);
+             if (terms.length === 0) return [];
+             const matchingIndices = new Set();
+             const exactMatches = new Set();
+             terms.forEach(term => {
+                 if (index.codeIndex.has(term)) {
+                     index.codeIndex.get(term).forEach(idx => exactMatches.add(idx));
+                 }
+             });
+             index.codeIndex.forEach((indices, code) => {
+                 terms.forEach(term => {
+                     if (code.startsWith(term)) {
+                         indices.forEach(idx => matchingIndices.add(idx));
+                     }
+                 });
+             });
+             terms.forEach(term => {
+                 if (index.nameIndex.has(term)) index.nameIndex.get(term).forEach(idx => matchingIndices.add(idx));
+                 if (index.categoryIndex.has(term)) index.categoryIndex.get(term).forEach(idx => matchingIndices.add(idx));
+                 if (index.subcategoryIndex.has(term)) index.subcategoryIndex.get(term).forEach(idx => matchingIndices.add(idx));
+             });
+             const result = [...exactMatches, ...matchingIndices].filter((idx, i, arr) => arr.indexOf(idx) === i).slice(0, 50);
+             return result.map(idx => index.bangsData[idx]).filter(bang => bang && typeof bang === 'object');
+         }
+         function createBangChip(bang) {
+             const chip = document.createElement('div');
+             chip.className = 'bang-chip';
+             const safeString = value => typeof value === 'string' ? value : '';
+             const code = safeString(bang.t);
+             const name = safeString(bang.s);
+             const domain = safeString(bang.d);
+             const category = safeString(bang.c);
+             const subcategory = safeString(bang.sc);
+             const url = safeString(bang.u);
+             if (url) chip.onclick = () => window.open(url.replace('{{{s}}}', 'example'), '_blank');
+             if (category) chip.dataset.category = category;
+             chip.innerHTML = `
+                 <span class="bang-code">!${code}</span>
+                 <div class="bang-info">
+                     <div class="bang-name">${name || 'Unnamed Bang'}</div>
+                     <div class="bang-domain">${domain || 'No domain'}</div>
+                 </div>
+             `;
+             if (category) chip.title = `Category: ${category}${subcategory ? ' › ' + subcategory : ''}`;
+             return chip;
+         }
+         function renderResults(filteredBangs) {
+             resultsContainer.innerHTML = '';
+             
+             // Remove empty state class when showing results
+             document.querySelector('.container').classList.remove('empty-state');
+             
+             if (filteredBangs.length === 0) {
+                 const noResults = document.createElement('div');
+                 noResults.className = 'no-results';
+                 noResults.textContent = 'No matching bangs found';
+                 resultsContainer.appendChild(noResults);
+                 return;
+             }
+             const fragment = document.createDocumentFragment();
+             const MAX_DISPLAY = 30;
+             const bangsToRender = filteredBangs.slice(0, MAX_DISPLAY);
+             bangsToRender.forEach(bang => fragment.appendChild(createBangChip(bang)));
+             resultsContainer.appendChild(fragment);
+             if (filteredBangs.length > MAX_DISPLAY) {
+                 const loadMoreDiv = document.createElement('div');
+                 loadMoreDiv.className = 'no-results';
+                 loadMoreDiv.textContent = `Showing ${MAX_DISPLAY} of ${filteredBangs.length} results. Refine your search to see more specific matches.`;
+                 resultsContainer.appendChild(loadMoreDiv);
+             }
+             
+             // Force recalculation of layout
+             setTimeout(() => {
+                 window.dispatchEvent(new Event('resize'));
+             }, 10);
+         }
+         let searchIndex;
+         let isIndexReady = false;
+         const initSearchIndex = () => {
+             resultsContainer.innerHTML = '';
+             const loading = document.createElement('div');
+             loading.className = 'no-results';
+             loading.textContent = 'Preparing search index...';
+             resultsContainer.appendChild(loading);
+             setTimeout(() => {
+                 try {
+                     searchIndex = createSearchIndex(bangs);
+                     isIndexReady = true;
+                     resultsContainer.innerHTML = '';
+                     const prompt = document.createElement('div');
+                     prompt.className = 'no-results';
+                     prompt.textContent = ' ';
+                     resultsContainer.appendChild(prompt);
+                     
+                     // Adjust container height for empty state
+                     document.querySelector('.container').classList.add('empty-state');
+                 } catch {
+                     resultsContainer.innerHTML = '';
+                     const errorMsg = document.createElement('div');
+                     errorMsg.className = 'no-results';
+                     errorMsg.textContent = 'An error occurred while preparing the search. Please check console for details.';
+                     resultsContainer.appendChild(errorMsg);
+                 }
+             }, 100);
+         };
+         initSearchIndex();
+         let debounceTimeout;
+         let lastSearchTerm = '';
+         searchInput.addEventListener('input', event => {
+             const searchTerm = event.target.value.trim();
+             if (searchTerm === lastSearchTerm) return;
+             lastSearchTerm = searchTerm;
+             clearTimeout(debounceTimeout);
+             debounceTimeout = setTimeout(() => {
+                 if (!isIndexReady) {
+                     resultsContainer.innerHTML = '';
+                     const loading = document.createElement('div');
+                     loading.className = 'no-results';
+                     loading.textContent = 'Preparing search index...';
+                     resultsContainer.appendChild(loading);
+                     return;
+                 }
+                 if (searchTerm.length === 0) {
+                     resultsContainer.innerHTML = '';
+                     const prompt = document.createElement('div');
+                     prompt.className = 'no-results';
+                     prompt.textContent = '';
+                     resultsContainer.appendChild(prompt);
+                 } else if (searchTerm.length === 1) {
+                     resultsContainer.innerHTML = '';
+                     const prompt = document.createElement('div');
+                     prompt.className = 'no-results';
+                     prompt.textContent = 'Type at least 2 characters to search...';
+                     resultsContainer.appendChild(prompt);
+                 } else {
+                     renderResults(searchWithIndex(searchIndex, searchTerm));
+                 }
+             }, 100);
+         });
+         window.addEventListener('load', () => searchInput.focus());
+         
+         // Add event listener to adjust layout on resize
+         window.addEventListener('resize', () => {
+             const width = window.innerWidth;
+             const resultsContainer = document.getElementById('results-container');
+             
+             // Always maintain maximum of 2 columns for results
+             if (width <= 480) {
+                 resultsContainer.style.gridTemplateColumns = '1fr';
+             } else {
+                 resultsContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+             }
+         });
+      </script>
+      <script nomodule>
+         console.error('Your browser does not support JavaScript modules. Please use a modern browser.');
+         document.getElementById('results-container').innerHTML = '<div class="no-results">Please use a modern browser that supports JavaScript modules</div>';
+      </script>
+   </body>
+</html>
