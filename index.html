@@ -165,19 +165,20 @@
       const encodedQuery = rawMatch ? rawMatch[1] : "";
       if (!encodedQuery) return null;
 
-      let temp = encodedQuery;
-      if (!/%20/.test(encodedQuery)) {
-        temp = temp.replace(/\+/g, " ");
-      }
+      let tmp = encodedQuery.replace(/%2B/gi, "__PLUS__");
 
-      const decodedQuery = decodeURIComponent(temp).trim();
-      if (!decodedQuery) return null;
+      tmp = tmp.replace(/\+/g, " ");
 
-      const bangMatch = decodedQuery.match(/!(\S+)/i);
+      let decoded = decodeURIComponent(tmp);
+
+      decoded = decoded.replace(/__PLUS__/g, "+").trim();
+      if (!decoded) return null;
+
+      const bangMatch = decoded.match(/!(\S+)/i);
       const bangCandidate = bangMatch ? bangMatch[1].toLowerCase() : "";
       const selectedBang = bangs.find(b => b.t === bangCandidate) || defaultBang;
 
-      const cleanQuery = decodedQuery.replace(/!\S+\s*/i, "").trim();
+      const cleanQuery = decoded.replace(/!\S+\s*/i, "").trim();
 
       const finalQuery = encodeURIComponent(cleanQuery).replace(/%2F/g, "/");
 
@@ -245,7 +246,6 @@
       });
     }
 
-    // If “q” exists and isn’t empty, redirect; otherwise show default page.
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("q") && urlParams.get("q").trim() !== "") {
       doRedirect();
