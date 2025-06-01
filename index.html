@@ -163,10 +163,14 @@
     function getBangRedirectUrl() {
       const rawMatch = window.location.search.match(/[?&]q=([^&]+)/i);
       const encodedQuery = rawMatch ? rawMatch[1] : "";
-
       if (!encodedQuery) return null;
 
-      const decodedQuery = decodeURIComponent(encodedQuery.replace(/\+/g, " ")).trim();
+      let temp = encodedQuery;
+      if (!/%20/.test(encodedQuery)) {
+        temp = temp.replace(/\+/g, " ");
+      }
+
+      const decodedQuery = decodeURIComponent(temp).trim();
       if (!decodedQuery) return null;
 
       const bangMatch = decodedQuery.match(/!(\S+)/i);
@@ -240,6 +244,8 @@
         }
       });
     }
+
+    // If “q” exists and isn’t empty, redirect; otherwise show default page.
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("q") && urlParams.get("q").trim() !== "") {
       doRedirect();
