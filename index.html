@@ -154,105 +154,84 @@
 </head>
 <body>
   <div id="app"></div>
-<script type="module">
-  document.addEventListener("DOMContentLoaded", async () => {
-    const { bangs } = await import('./bang.js');
-    const LS_DEFAULT_BANG = localStorage.getItem("default-bang") || "g";
-    const defaultBang = bangs.find(b => b.t === LS_DEFAULT_BANG) || bangs[0];
-
-    function getBangRedirectUrl() {
-      const rawMatch = window.location.search.match(/[?&]q=([^&]+)/i);
-      const encodedQuery = rawMatch ? rawMatch[1] : "";
-      if (!encodedQuery) return null;
-
-      let tmp = encodedQuery.replace(/%2B/gi, "__PLUS__");
-
-      tmp = tmp.replace(/\+/g, " ");
-
-      let decoded = decodeURIComponent(tmp);
-
-      decoded = decoded.replace(/__PLUS__/g, "+").trim();
-      if (!decoded) return null;
-
-      const bangMatch = decoded.match(/!(\S+)/i);
-      const bangCandidate = bangMatch ? bangMatch[1].toLowerCase() : "";
-      const selectedBang = bangs.find(b => b.t === bangCandidate) || defaultBang;
-
-      const cleanQuery = decoded.replace(/!\S+\s*/i, "").trim();
-
-      const finalQuery = encodeURIComponent(cleanQuery).replace(/%2F/g, "/");
-
-      return selectedBang.u.replace("{{{s}}}", finalQuery);
-    }
-
-    function doRedirect() {
-      const redirectUrl = getBangRedirectUrl();
-      if (redirectUrl) {
-        window.location.replace(redirectUrl);
+  <script type="module">
+    document.addEventListener("DOMContentLoaded", async () => {
+      const { bangs } = await import('./bang.js');
+      const LS_DEFAULT_BANG = localStorage.getItem("default-bang") || "g";
+      const defaultBang = bangs.find(b => b.t === LS_DEFAULT_BANG) || bangs[0];
+      function getBangRedirectUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const query = urlParams.get("q")?.trim() || "";
+        if (!query) return null;
+        const match = query.match(/!(\S+)/i);
+        const bangCandidate = match ? match[1].toLowerCase() : "";
+        const selectedBang = bangs.find(b => b.t === bangCandidate) || defaultBang;
+        const cleanQuery = query.replace(/!\S+\s*/i, "").trim();
+        const searchUrl = selectedBang.u.replace("{{{s}}}", encodeURIComponent(cleanQuery).replace(/%2F/g, "/"));
+        return searchUrl;
       }
-    }
-
-    function renderDefaultPage() {
-      const app = document.getElementById("app");
-      app.innerHTML = `
-        <div class="container">
-          <h1>e108 !Bangs</h1>
-          <p>
-            DuckDuckGo's bang redirects are too slow. Add the following URL as a custom search engine to your browser. 
-            Enables all of DuckDuckGo's <a class="link" href="https://duckduckgo.com/bangs" target="_blank">bangs</a>.
-          </p>
-          <div class="url-container">
-            <input type="text" id="urlInput" value="https://bang.e108.dev/?q=%s" readonly>
-            <button class="copy-button" id="copyButton">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      function doRedirect() {
+        const redirectUrl = getBangRedirectUrl();
+        if (redirectUrl) {
+          window.location.replace(redirectUrl);
+        }
+      }
+      function renderDefaultPage() {
+        const app = document.getElementById("app");
+        app.innerHTML = `
+          <div class="container">
+            <h1>e108 !Bangs</h1>
+            <p>
+              DuckDuckGo's bang redirects are too slow. Add the following URL as a custom search engine to your browser. 
+              Enables all of DuckDuckGo's <a class="link" href="https://duckduckgo.com/bangs" target="_blank">bangs</a>.
+            </p>
+            <div class="url-container">
+              <input type="text" id="urlInput" value="https://bang.e108.dev/?q=%s" readonly>
+              <button class="copy-button" id="copyButton">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              </svg>
-            </button>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="footer">
-          <a href="https://e108.dev" target="_blank">e108.dev</a> • 
-          <a href="https://github.com/Q2x38b" target="_blank">e108</a> • 
-          <a href="https://github.com/Q2x38b/simplified-bangs" target="_blank">github</a> • 
-          <a href="https://bang.e108.dev/search" target="_blank">bang search</a>
-        </div>
-      `;
-
-      const copyButton = document.getElementById("copyButton");
-      const urlInput = document.getElementById("urlInput");
-      const defaultIcon = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        </svg>`;
-      const checkIcon = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-          <path d="m9 14 2 2 4-4"/>
-        </svg>`;
-
-      copyButton.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(urlInput.value);
-          copyButton.innerHTML = checkIcon;
-          setTimeout(() => {
-            copyButton.innerHTML = defaultIcon;
-          }, 2000);
-        } catch (err) {
-          console.error("Failed to copy text: ", err);
-        }
-      });
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has("q") && urlParams.get("q").trim() !== "") {
-      doRedirect();
-    } else {
-      renderDefaultPage();
-    }
-  });
-</script>
+          <div class="footer">
+            <a href="https://e108.dev" target="_blank">e108.dev</a> • 
+            <a href="https://github.com/Q2x38b" target="_blank">e108</a> • 
+            <a href="https://github.com/Q2x38b/simplified-bangs" target="_blank">github</a> • 
+            <a href="https://bang.e108.dev/search" target="_blank">bang search</a>
+          </div>
+        `;
+        const copyButton = document.getElementById("copyButton");
+        const urlInput = document.getElementById("urlInput");
+        const defaultIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                </svg>`;
+        const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <path d="m9 14 2 2 4-4"/>
+                </svg>`;
+        copyButton.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(urlInput.value);
+            copyButton.innerHTML = checkIcon;
+            setTimeout(() => {
+              copyButton.innerHTML = defaultIcon;
+            }, 2000);
+          } catch (err) {
+            console.error("Failed to copy text: ", err);
+          }
+        });
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has("q") && urlParams.get("q").trim() !== "") {
+        doRedirect();
+      } else {
+        renderDefaultPage();
+      }
+    });
+  </script>
 </body>
 </html>
