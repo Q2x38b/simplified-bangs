@@ -42423,7 +42423,7 @@ export const bangs = [
     s: "Google Maps",
     sc: "Google",
     t: "gmap",
-    u: "http://maps.google.com/maps?q={{{s}}}",
+    u: "https://www.google.com/maps/search/{{{s}}}",
   },
   {
     c: "Online Services",
@@ -42432,7 +42432,7 @@ export const bangs = [
     s: "Google Maps",
     sc: "Google",
     t: "gmaps",
-    u: "http://maps.google.com/maps?q={{{s}}}",
+    u: "https://www.google.com/maps/search/{{{s}}}",
   },
   {
     c: "Shopping",
@@ -42558,7 +42558,7 @@ export const bangs = [
     s: "Google Maps",
     sc: "Maps",
     t: "gm",
-    u: "https://google.com/maps/place/{{{s}}}",
+    u: "https://www.google.com/maps/search/{{{s}}}",
   },
   {
     c: "Online Services",
