@@ -10,7 +10,37 @@ declare const __SEARCH_MODAL_CSS__: string;
 // network at all. It is purely an optimisation; the edge handles every request
 // identically if registration fails or the browser has no support.
 if ('serviceWorker' in navigator) {
-  addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  // On a first visit the page loads uncontrolled, and the worker claiming it
+  // moments later is not an update — reloading then would be pointless churn.
+  // This has to be a mutable flag rather than a snapshot: a tab opened on that
+  // first visit would otherwise treat every later deploy as the initial claim
+  // and never refresh.
+  let hasController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+
+  // A replacement worker taking control means this document came from the
+  // previous build. Reload once so the tab picks up the new one — this is what
+  // makes a deploy reach tabs that have been sitting open.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hasController) {
+      hasController = true; // initial claim, nothing on screen is stale
+      return;
+    }
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+
+  addEventListener('load', () => {
+    void navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        // Browsers only check for a new worker on navigation, so a tab left
+        // open would otherwise never notice. Re-check when it regains focus.
+        addEventListener('focus', () => void registration.update().catch(() => {}));
+      })
+      .catch(() => {});
+  });
 }
 
 // ---------------------------------------------------------------------------

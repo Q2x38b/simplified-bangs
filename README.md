@@ -116,6 +116,27 @@ Browser support is uneven and worth knowing: Firefox uses it fully; Chromium
 only in keyword mode (type the engine keyword, then Tab) unless this is the
 default engine; Safari has no OpenSearch support at all.
 
+## Staying fresh across deploys
+
+Three things keep a deploy from being masked by caching:
+
+- **The worker's cache key is a digest of every emitted artifact**, not just the
+  bang data. Keying it off the data alone meant a UI-only deploy produced an
+  identical cache name, so returning visitors were served the previous HTML
+  indefinitely.
+- **The app shell is network-first.** It is not content-hashed, so the cache is
+  only an offline fallback; content-hashed data stays cache-first, where it can
+  never be stale.
+- **Open tabs reload themselves.** A new worker calls `skipWaiting()` and
+  `clients.claim()`, which fires `controllerchange`; the page reloads once.
+  Tabs re-check for a new worker on focus, since browsers otherwise only look
+  on navigation.
+
+HTML is sent `Cache-Control: public, max-age=0, must-revalidate` so browsers
+always revalidate, with `Vercel-CDN-Cache-Control` carrying the long
+`stale-while-revalidate` for the CDN alone — shared with browsers, it would let
+them paint week-old markup after a deploy.
+
 ## Analytics
 
 Off by default and entirely optional. Because a bang is a 302 from the edge, no

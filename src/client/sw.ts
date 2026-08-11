@@ -52,6 +52,8 @@ self.addEventListener('activate', (event) => {
     (async () => {
       const names = await caches.keys();
       await Promise.all(names.filter((n) => n.startsWith('bangs-') && n !== CACHE).map((n) => caches.delete(n)));
+      // Claiming fires `controllerchange` in every open tab, which is what
+      // prompts them to reload onto this build.
       await self.clients.claim();
     })(),
   );
@@ -100,13 +102,32 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Serve the cached app shell for everything we precached.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname === '/' && url.searchParams.has('q')) return; // handled above
 
-  if (url.pathname === __REDIRECT_MAP_URL__ || __PRECACHE__.includes(url.pathname)) {
+  // Content-hashed data: the URL changes whenever the bytes do, so the cached
+  // copy can never be stale and is always preferred.
+  if (url.pathname === __REDIRECT_MAP_URL__) {
     event.respondWith(caches.match(event.request).then((hit) => hit ?? fetch(event.request)));
+    return;
+  }
+
+  // The app shell is *not* content-hashed, so it is network-first: a deploy is
+  // visible on the next load, and the cache only serves as an offline fallback.
+  // Cache-first here meant a returning visitor could be pinned to old markup.
+  if (__PRECACHE__.includes(url.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            void caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match(event.request)) ?? Response.error()),
+    );
   }
 });

@@ -143,7 +143,15 @@ report('src/generated/redirect-map.ts', redirectMapJson);
 
 // ---------------------------------------------------------------------------
 
-const BUILD_ID = createHash('sha256').update(redirectMapJson).digest('hex').slice(0, 12);
+/**
+ * Every emitted artifact, accumulated so the service worker's cache key can be
+ * derived from all of them.
+ *
+ * Keying it off the bang data alone meant a UI-only deploy produced the same
+ * cache name, so returning visitors kept being served the previous HTML from
+ * the worker's cache indefinitely.
+ */
+const artifacts: string[] = [redirectMapJson, suggestJson];
 
 async function bundle(
   entry: string,
@@ -195,6 +203,7 @@ const bootJs = await bundle('boot.ts', {
   },
 });
 report('inline boot (in index.html)', bootJs);
+artifacts.push(bootJs);
 
 // The search island: React + Radix + cmdk, fetched only when the user opens it.
 const modalJs = await bundle('search-modal.tsx', {
@@ -202,7 +211,9 @@ const modalJs = await bundle('search-modal.tsx', {
   define: { __SEARCH_INDEX_URL__: JSON.stringify(searchIndexUrl) },
 });
 const modalJsUrl = await writeHashed('assets', 'search-modal', 'js', modalJs);
-const modalCssUrl = await writeHashed('assets', 'search-modal', 'css', await buildCss());
+const modalCss = await buildCss();
+const modalCssUrl = await writeHashed('assets', 'search-modal', 'css', modalCss);
+artifacts.push(modalJs, modalCss);
 
 const landingJs = await bundle('landing.ts', {
   iife: true,
@@ -212,19 +223,7 @@ const landingJs = await bundle('landing.ts', {
   },
 });
 const landingJsUrl = await writeHashed('assets', 'landing', 'js', landingJs);
-
-const swJs = await bundle('sw.ts', {
-  iife: true,
-  define: {
-    __REDIRECT_MAP_URL__: JSON.stringify(redirectMapUrl),
-    __BUILD_ID__: JSON.stringify(BUILD_ID),
-    __PRECACHE__: JSON.stringify(['/']),
-  },
-});
-// The service worker must live at the root to control the whole origin, and is
-// deliberately not hashed — browsers revalidate it by URL.
-await writeFile(`${DIST}/sw.js`, swJs);
-report('sw.js', swJs);
+artifacts.push(landingJs);
 
 // ---------------------------------------------------------------------------
 
@@ -245,14 +244,35 @@ const openSearch = `<?xml version="1.0" encoding="UTF-8"?>
 `;
 await writeFile(`${DIST}/opensearch.xml`, openSearch);
 report('opensearch.xml', openSearch);
+artifacts.push(openSearch);
 
 for (const [source, target] of [['index.html', 'index.html']] as const) {
   const html = (await readFile(`${ROOT}src/pages/${source}`, 'utf8'))
     .replace('/*__BOOT__*/', () => bootJs)
-    .replaceAll('__LANDING_JS__', landingJsUrl)
-    .replaceAll('__BUILD_ID__', BUILD_ID);
+    .replaceAll('__LANDING_JS__', landingJsUrl);
   await writeFile(`${DIST}/${target}`, html);
   report(target, html);
+  artifacts.push(html);
 }
 
-console.log('\nBuild complete.');
+// ---------------------------------------------------------------------------
+// The worker is built last: its cache key is a digest of everything above, so
+// any change at all — data, script, style or markup — invalidates it.
+// ---------------------------------------------------------------------------
+
+const BUILD_ID = createHash('sha256').update(artifacts.join('\u0000')).digest('hex').slice(0, 12);
+
+const swJs = await bundle('sw.ts', {
+  iife: true,
+  define: {
+    __REDIRECT_MAP_URL__: JSON.stringify(redirectMapUrl),
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+    __PRECACHE__: JSON.stringify(['/']),
+  },
+});
+// The service worker must live at the root to control the whole origin, and is
+// deliberately not hashed — browsers revalidate it by URL.
+await writeFile(`${DIST}/sw.js`, swJs);
+report('sw.js', swJs);
+
+console.log(`\nBuild ${BUILD_ID} complete.`);
