@@ -3,12 +3,77 @@
  */
 import { DEFAULT_BANG_COOKIE, DEFAULT_TRIGGER } from '../lib/resolve.js';
 
+declare const __SEARCH_MODAL_JS__: string;
+declare const __SEARCH_MODAL_CSS__: string;
+
 // Registering the worker is what makes subsequent redirects resolve with no
 // network at all. It is purely an optimisation; the edge handles every request
 // identically if registration fails or the browser has no support.
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
+
+// ---------------------------------------------------------------------------
+// Search island
+//
+// React + Radix + cmdk are ~70 KB gzipped, so they are fetched only when the
+// user shows intent: pressing the shortcut, clicking the trigger, or landing on
+// #search. A pointer near the trigger prefetches so the open feels instant.
+// ---------------------------------------------------------------------------
+
+let modalLoaded = false;
+
+/**
+ * `prefetch` warms the bundle without opening anything (used on pointer intent).
+ * Anything else means the user asked for the palette, and the island reads this
+ * flag on mount — the keystroke that triggers the load happens before the
+ * island's own listeners exist, so it cannot observe the event itself.
+ */
+function loadSearchModal(intent: 'open' | 'prefetch' = 'open'): void {
+  if (intent === 'open') window.__openBangSearch = true;
+  if (modalLoaded) return;
+  modalLoaded = true;
+
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = __SEARCH_MODAL_CSS__;
+  document.head.append(css);
+
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = __SEARCH_MODAL_JS__;
+  document.body.append(script);
+}
+
+// Once loaded, the island owns these interactions; until then we forward them.
+addEventListener(
+  'keydown',
+  (event: KeyboardEvent) => {
+    const target = event.target;
+    const typing =
+      target instanceof HTMLElement &&
+      (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+    if ((event.key === 'k' && (event.metaKey || event.ctrlKey)) || (event.key === '/' && !typing)) {
+      event.preventDefault();
+      loadSearchModal();
+    }
+  },
+  { capture: true },
+);
+
+for (const trigger of document.querySelectorAll('[data-open-search]')) {
+  trigger.addEventListener('pointerenter', () => loadSearchModal('prefetch'), { once: true });
+  trigger.addEventListener('click', () => loadSearchModal());
+}
+
+if (location.hash === '#search') loadSearchModal();
+addEventListener('hashchange', () => {
+  if (location.hash === '#search') loadSearchModal();
+});
+
+// ---------------------------------------------------------------------------
+// Copy + default bang
+// ---------------------------------------------------------------------------
 
 const copyButton = document.getElementById('copy-button');
 const urlInput = document.getElementById('url-input') as HTMLInputElement | null;

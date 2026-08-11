@@ -1,6 +1,6 @@
 # simplified-bangs
 
-Fast DuckDuckGo-style `!bang` redirects. Add `https://bang.e108.dev/?q=%s` as a
+Fast DuckDuckGo-style `!bang` redirects, resolved at the edge. Add `https://bang.e108.dev/?q=%s` as a
 custom search engine and every DuckDuckGo bang works, resolved at the edge.
 
 ## How a redirect is served
@@ -25,18 +25,36 @@ omits the URLs it doesn't need.
 ## Layout
 
 ```
-middleware.ts            Edge redirect — the primary path
-src/lib/resolve.ts       Shared resolution logic (the only copy)
-src/lib/types.ts         Bang, SearchEntry, RedirectMap
-src/data/bangs.json      Source of truth: 13,569 bangs
+middleware.ts              Edge redirect — the primary path
+src/lib/resolve.ts         Shared resolution logic (the only copy)
+src/lib/search.ts          Search engine for the modal (pure, no DOM)
+src/lib/tags.ts            Tag derivation and normalisation
+src/lib/analytics.ts       Optional anonymous edge counters
+src/lib/types.ts           Bang, SearchEntry, SearchPayload, RedirectMap
+src/data/bangs.json        Upstream DuckDuckGo list (13,569)
+src/data/extra-bangs.json  Curated additions (62) — edit this, not the above
 src/data/https-hosts.json  Hosts verified to answer over HTTPS
-src/client/              boot / sw / search / landing entry points
-src/pages/               HTML templates
-src/generated/           Built artifact, committed so deploys are deterministic
-scripts/build.ts         Builds dist/ and src/generated/
-scripts/test.ts          Resolver tests
-scripts/probe-https.ts   Re-probes hosts for HTTPS support
+src/client/                boot / sw / landing / search-modal entry points
+src/components/ui/         shadcn/ui components (Dialog, Command)
+src/pages/                 HTML templates
+src/generated/             Built artifact, committed so deploys are deterministic
+scripts/build.ts           Builds dist/ and src/generated/
+scripts/test.ts            Resolver, dataset and search tests
+scripts/probe-https.ts     Re-probes hosts for HTTPS support
 ```
+
+## Search
+
+Press <kbd>⌘K</kbd> (or <kbd>/</kbd>, or click the search bar) anywhere on the
+landing page. It's a shadcn/ui command palette — React, Radix and cmdk — that is
+**lazily loaded**: ~88 KB gzipped fetched only when you actually open it, and
+never on the redirect path, which is answered at the edge with no client code at
+all. `/search` redirects to `/#search`, which deep-links straight into the modal.
+
+Results are ranked by match quality with a bounded popularity boost, so an exact
+trigger wins, then exact name/tag matches, then partial prefixes weighted by how
+much of the target they cover. Tag chips below the input filter the results
+(AND across selected tags) and follow whatever is currently matching.
 
 ## Development
 
@@ -59,9 +77,36 @@ from the CDN with `stale-while-revalidate`.
 
 ## Adding or editing a bang
 
-Edit `src/data/bangs.json` (`t` trigger, `s` name, `d` domain, `c`/`sc`
-category, `r` relevance, `u` URL template with `{{{s}}}` placeholders), then
-`npm run build && npm test`.
+Add it to **`src/data/extra-bangs.json`**, then `npm run build && npm test`.
+
+Fields: `t` trigger, `s` name, `d` domain, `c`/`sc` category, `r` relevance,
+`u` URL template with `{{{s}}}` placeholders, and optional `tg` tags. Entries
+here win over an upstream bang with the same trigger, so re-importing
+DuckDuckGo's list never clobbers a custom one — and a test fails if a custom
+bang starts shadowing an upstream one without you deciding to.
+
+Where a site has no reliable search URL, the template uses a site-scoped
+DuckDuckGo query (`?q={{{s}}}+site%3Aexample.com`) rather than dropping the
+user's query on the floor.
+
+## Analytics
+
+Off by default and entirely optional. Because a bang is a 302 from the edge, no
+HTML is ever rendered, so no client-side analytics script can observe a redirect
+— counting has to happen in the middleware.
+
+Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in the Vercel project
+to enable it. Each redirect then increments two integers via `waitUntil`, off the
+critical path:
+
+    HINCRBY bangs:<YYYY-MM-DD> <trigger> 1
+    INCR    total:<YYYY-MM-DD>
+
+Recorded: the bang trigger and the UTC date. Not recorded: search terms, IP,
+user agent, referrer, cookies, or any identifier. There are no per-user records
+at all — only aggregate counters — so there is nothing to anonymise later and no
+consent banner to show. Unknown triggers are bucketed as `(unknown)` rather than
+written verbatim, since they are attacker-controlled text.
 
 ## Dataset notes
 

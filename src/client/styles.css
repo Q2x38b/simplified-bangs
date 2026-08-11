@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+/* Only the modal island uses Tailwind; the landing page ships hand-written CSS. */
+@source "../components/**/*.tsx";
+@source "../client/**/*.tsx";
+
+/*
+ * The handful of enter/exit utilities shadcn's Dialog expects. Written out here
+ * rather than pulling in tw-animate-css for six rules.
+ */
+/*
+ * Animate `scale`, never `transform`. Tailwind v4 centres the dialog with the
+ * standalone `translate` property, and a `transform: translateX(-50%)` here
+ * would compose with it rather than replace it — shifting the dialog by a full
+ * width instead of half.
+ */
+@keyframes bang-fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes bang-fade-out { from { opacity: 1 } to { opacity: 0 } }
+@keyframes bang-zoom-in { from { opacity: 0; scale: .96 } to { opacity: 1; scale: 1 } }
+@keyframes bang-zoom-out { from { opacity: 1; scale: 1 } to { opacity: 0; scale: .96 } }
+
+@utility animate-in { animation: bang-fade-in .15s ease-out }
+@utility animate-out { animation: bang-fade-out .12s ease-in }
+@utility zoom-in-95 { animation: bang-zoom-in .15s ease-out }
+@utility zoom-out-95 { animation: bang-zoom-out .12s ease-in }
+@utility fade-in-0 { animation-fill-mode: both }
+@utility fade-out-0 { animation-fill-mode: both }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-state] { animation: none !important }
+}

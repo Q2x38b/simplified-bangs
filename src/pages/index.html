@@ -46,26 +46,47 @@
   }
   input:focus-visible { border-color: var(--text-secondary); }
   input.saved { border-color: var(--accent); }
-  button {
+  /*
+    Scoped to the id, not `button`. The search modal portals into this same
+    document, so a bare element selector here would restyle every button inside
+    it — a 40x40 grid box clipping each tag chip.
+  */
+  #copy-button {
     display: grid; place-items: center; width: 40px; height: 40px; flex: none;
     background-color: var(--kbd-background); color: var(--text-primary);
     border: 1px solid var(--border-subtle); border-radius: 6px;
     padding: 0; cursor: pointer;
   }
-  button:hover { background-color: var(--border-color); }
-  button svg { width: 20px; height: 20px; }
-  button .check { display: none; }
-  button.copied .check { display: block; }
-  button.copied .clip { display: none; }
-  button.copied { border-color: var(--accent); color: var(--accent); }
+  #copy-button:hover { background-color: var(--border-color); }
+  #copy-button svg { width: 20px; height: 20px; }
+  #copy-button .check { display: none; }
+  #copy-button.copied .check { display: block; }
+  #copy-button.copied .clip { display: none; }
+  #copy-button.copied { border-color: var(--accent); color: var(--accent); }
+  .search-trigger {
+    display: flex; align-items: center; gap: 10px; width: 100%; height: 44px;
+    margin-top: 12px; padding: 0 12px; cursor: pointer;
+    background-color: var(--kbd-background); color: var(--text-secondary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    font-family: var(--font-sans); font-size: .9rem; text-align: left;
+  }
+  .search-trigger:hover { border-color: var(--border-subtle); color: var(--text-primary); background-color: var(--border-color); }
+  .search-trigger svg { width: 16px; height: 16px; flex: none; }
+  .search-trigger span { flex: 1; }
+  .search-trigger kbd {
+    font-family: var(--font-mono); font-size: 11px; padding: 2px 6px;
+    border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-secondary);
+  }
   .setting {
     display: flex; align-items: center; gap: 10px; justify-content: center;
     margin-top: 1.6rem; font-size: .85rem; color: var(--text-secondary);
   }
   .setting input { flex: none; width: 90px; height: 34px; text-align: center; font-size: 14px; }
   .footer { margin-top: 2.5rem; font-size: .75rem; color: var(--text-secondary); }
-  a { color: var(--text-secondary); text-decoration: none; margin: 0 4px; }
+  a { color: var(--text-secondary); text-decoration: none; }
   a:hover { color: var(--text-primary); text-decoration: underline; }
+  /* Spacing belongs to the footer's separated list, not to inline links. */
+  .footer a { margin: 0 4px; }
   .link { text-decoration: underline; }
 </style>
 </head>
@@ -94,6 +115,14 @@
       </button>
     </div>
 
+    <button class="search-trigger" type="button" data-open-search>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+      </svg>
+      <span>Search 13,631 bangs</span>
+      <kbd>⌘K</kbd>
+    </button>
+
     <div class="setting">
       <label for="default-bang">Default bang when a query has none</label>
       <input type="text" id="default-bang" value="g" spellcheck="false" autocapitalize="off" autocomplete="off">
@@ -102,8 +131,7 @@
     <div class="footer">
       <a href="https://e108.dev" target="_blank" rel="noopener">e108.dev</a> •
       <a href="https://github.com/Q2x38b" target="_blank" rel="noopener">e108</a> •
-      <a href="https://github.com/Q2x38b/simplified-bangs" target="_blank" rel="noopener">github</a> •
-      <a href="/search">bang search</a>
+      <a href="https://github.com/Q2x38b/simplified-bangs" target="_blank" rel="noopener">github</a>
     </div>
   </div>
   <script src="__LANDING_JS__" defer></script>

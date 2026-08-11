@@ -10,6 +10,7 @@
  */
 import { REDIRECT_MAP } from './src/generated/redirect-map.js';
 import { readDefaultTrigger, resolve } from './src/lib/resolve.js';
+import { record, type EdgeContext } from './src/lib/analytics.js';
 
 export const config = {
   // Only the redirect entry point. Everything else is served straight from CDN.
@@ -18,7 +19,7 @@ export const config = {
 
 const lookup = (trigger: string): string | undefined => REDIRECT_MAP[trigger];
 
-export default function middleware(request: Request): Response | undefined {
+export default function middleware(request: Request, context?: EdgeContext): Response | undefined {
   const query = new URL(request.url).searchParams.get('q');
   if (!query?.trim()) return undefined; // No bang — serve the landing page.
 
@@ -26,6 +27,9 @@ export default function middleware(request: Request): Response | undefined {
     defaultTrigger: readDefaultTrigger(request.headers.get('cookie')),
   });
   if (!resolution) return undefined;
+
+  // Aggregate counters only, never the search terms. No-op unless configured.
+  record(resolution.trigger, resolution.matched, context);
 
   return new Response(null, {
     status: 302,

@@ -20,8 +20,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 
+    "jsx": "react-jsx",
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts", "api/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "scripts/**/*.ts", "middleware.ts"],
   "exclude": ["node_modules", "dist"]
 }

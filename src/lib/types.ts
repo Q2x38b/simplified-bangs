@@ -14,10 +14,28 @@ export interface Bang {
   r: number;
   /** Target URL template, containing zero or more `{{{s}}}` placeholders. */
   u: string;
+  /**
+   * Curated tags, beyond the ones derived automatically from `c` and `sc`.
+   * Only set on entries in `extra-bangs.json`.
+   */
+  tg?: string[];
 }
 
-/** Compact tuple used by the search page: [trigger, name, domain, category, relevance]. */
-export type SearchEntry = readonly [t: string, s: string, d: string, c: string, r: number];
+/**
+ * Compact tuple used by the search modal:
+ * [trigger, name, domain, relevance, tag ids].
+ *
+ * Tag ids index into the sibling `tags` array. Interning them this way is both
+ * smaller than repeating category strings on every entry and faster to filter.
+ */
+export type SearchEntry = readonly [t: string, s: string, d: string, r: number, tags: readonly number[]];
+
+/** Payload served to the search modal. */
+export interface SearchPayload {
+  /** All distinct tags, ordered by descending entry count. */
+  tags: readonly string[];
+  entries: readonly SearchEntry[];
+}
 
 /** Trigger -> URL template. The only thing the redirect path needs. */
 export type RedirectMap = Record<string, string>;
