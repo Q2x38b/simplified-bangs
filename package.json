@@ -1,0 +1,23 @@
+{
+  "name": "simplified-bangs",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Fast DuckDuckGo-style !bang redirects, resolved at the edge.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "probe-https": "tsx scripts/probe-https.ts",
+    "dev": "vercel dev",
+    "test": "tsx --test scripts/test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

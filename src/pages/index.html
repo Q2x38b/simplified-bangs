@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--
+  The redirect fallback runs first, synchronously, before any stylesheet or
+  markup. In normal operation the edge middleware has already answered with a
+  302 and this document is never fetched for a bang query.
+-->
+<script>/*__BOOT__*/</script>
+<title>e108 !Bangs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Fast DuckDuckGo-style !bang redirects, resolved at the edge.">
+<meta name="theme-color" content="#141414">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<style>
+  :root {
+    --background: #141414;
+    --foreground: #ebebeb;
+    --text-primary: #d4d4d8;
+    --text-secondary: #737373;
+    --border-color: #272727;
+    --border-subtle: #353535;
+    --kbd-background: #222;
+    --accent: #6c63ff;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; margin: 0; padding: 1.5rem;
+    background-color: var(--background); color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { text-align: center; max-width: 620px; width: 100%; }
+  h1 { font-size: clamp(2rem, 7vw, 3rem); margin: 0 0 .6rem; font-weight: 500; color: var(--text-primary); }
+  p { font-size: 1rem; margin: 0 0 1.4rem; line-height: 1.6; color: var(--text-secondary); }
+  .row { display: flex; align-items: center; gap: 8px; }
+  input {
+    flex: 1; min-width: 0; padding: 10px 12px; height: 40px;
+    font-size: 16px; font-family: var(--font-mono);
+    background-color: var(--kbd-background); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px; outline: none;
+  }
+  input:focus-visible { border-color: var(--text-secondary); }
+  input.saved { border-color: var(--accent); }
+  button {
+    display: grid; place-items: center; width: 40px; height: 40px; flex: none;
+    background-color: var(--kbd-background); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 0; cursor: pointer;
+  }
+  button:hover { background-color: var(--border-color); }
+  button svg { width: 20px; height: 20px; }
+  button .check { display: none; }
+  button.copied .check { display: block; }
+  button.copied .clip { display: none; }
+  button.copied { border-color: var(--accent); color: var(--accent); }
+  .setting {
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    margin-top: 1.6rem; font-size: .85rem; color: var(--text-secondary);
+  }
+  .setting input { flex: none; width: 90px; height: 34px; text-align: center; font-size: 14px; }
+  .footer { margin-top: 2.5rem; font-size: .75rem; color: var(--text-secondary); }
+  a { color: var(--text-secondary); text-decoration: none; margin: 0 4px; }
+  a:hover { color: var(--text-primary); text-decoration: underline; }
+  .link { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>e108 !Bangs</h1>
+    <p>
+      DuckDuckGo's bang redirects are too slow. Add the URL below as a custom search
+      engine in your browser to get all of DuckDuckGo's
+      <a class="link" href="https://duckduckgo.com/bangs" target="_blank" rel="noopener">bangs</a>,
+      resolved at the edge.
+    </p>
+
+    <div class="row">
+      <input type="text" id="url-input" value="https://bang.e108.dev/?q=%s" readonly aria-label="Search engine URL">
+      <button id="copy-button" type="button" aria-label="Copy URL">
+        <svg class="clip" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        </svg>
+        <svg class="check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <path d="m9 14 2 2 4-4"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="setting">
+      <label for="default-bang">Default bang when a query has none</label>
+      <input type="text" id="default-bang" value="g" spellcheck="false" autocapitalize="off" autocomplete="off">
+    </div>
+
+    <div class="footer">
+      <a href="https://e108.dev" target="_blank" rel="noopener">e108.dev</a> •
+      <a href="https://github.com/Q2x38b" target="_blank" rel="noopener">e108</a> •
+      <a href="https://github.com/Q2x38b/simplified-bangs" target="_blank" rel="noopener">github</a> •
+      <a href="/search">bang search</a>
+    </div>
+  </div>
+  <script src="__LANDING_JS__" defer></script>
+</body>
+</html>
