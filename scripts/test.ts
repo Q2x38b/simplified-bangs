@@ -10,6 +10,7 @@ import type { RedirectMap, SearchEntry, SearchPayload } from '../src/lib/types.t
 import { expandTemplate, homeUrl, parseQuery, readDefaultTrigger, resolve } from '../src/lib/resolve.ts';
 import { deriveTags } from '../src/lib/tags.ts';
 import { buildIndex, search } from '../src/lib/search.ts';
+import { partialBang, suggest } from '../src/lib/suggest.ts';
 import { loadDataset } from './dataset.ts';
 
 const { bangs, overridden } = await loadDataset();
@@ -287,4 +288,78 @@ test('a placeholder in the hostname is dropped, not navigated to', () => {
   assert.equal(go('!tor'), 'https://tor2web.org');
   assert.equal(go('!wpblog'), 'http://wordpress.com');
   assert.equal(homeUrl('https://{{{s}}}.example.com/'), 'https://example.com');
+});
+
+// ---------------------------------------------------------------------------
+// OpenSearch address-bar suggestions
+// ---------------------------------------------------------------------------
+
+const suggestIndex = (() => {
+  const sorted = bangs.slice().sort((a, b) => a.t.localeCompare(b.t));
+  return {
+    t: sorted.map((b) => b.t),
+    s: sorted.map((b) => b.s),
+    d: sorted.map((b) => b.d),
+    r: sorted.map((b) => b.r),
+  };
+})();
+
+const completions = (q: string): string[] => suggest(suggestIndex, q)[1];
+
+test('partialBang only completes a bang at the end of the query', () => {
+  assert.deepEqual(partialBang('!cl'), { prefix: 'cl', before: '' });
+  assert.deepEqual(partialBang('foo !cl'), { prefix: 'cl', before: 'foo ' });
+  assert.equal(partialBang('!cl '), null, 'trailing space means the token is done');
+  assert.equal(partialBang('!yt cats'), null, 'bang already chosen');
+  assert.equal(partialBang('hello'), null);
+  assert.equal(partialBang(''), null);
+  assert.deepEqual(partialBang('!'), { prefix: '', before: '' });
+});
+
+test('suggests bangs for a typed prefix, most popular first', () => {
+  const hits = completions('!cl');
+  assert.ok(hits.length > 0);
+  assert.ok(hits.includes('!claude'), `expected !claude in ${hits.join(', ')}`);
+  assert.ok(hits.every((h) => h.startsWith('!cl')));
+});
+
+test('an exact trigger floats to the top', () => {
+  assert.equal(completions('!g')[0], '!g');
+  assert.equal(completions('!yt')[0], '!yt');
+  assert.equal(completions('!npmx')[0], '!npmx');
+});
+
+test('preserves text typed before the bang', () => {
+  const hits = completions('cats !y');
+  assert.ok(hits.length > 0);
+  assert.ok(hits.every((h) => h.startsWith('cats !')), hits.join(', '));
+});
+
+test('returns nothing for a query that is not a bang', () => {
+  // The browser sends every keystroke; anything that is not a bang gets no
+  // response and is never acted on.
+  assert.deepEqual(completions('hello world'), []);
+  assert.deepEqual(completions('!yt cats'), []);
+  assert.deepEqual(completions(''), []);
+});
+
+test('unknown prefixes yield nothing rather than noise', () => {
+  assert.deepEqual(completions('!zzzzqqq'), []);
+});
+
+test('response is valid OpenSearch Suggestions shape', () => {
+  const r = suggest(suggestIndex, '!cl');
+  assert.equal(r.length, 4);
+  assert.equal(r[0], '!cl');
+  assert.ok(Array.isArray(r[1]) && Array.isArray(r[2]) && Array.isArray(r[3]));
+  assert.equal(r[1].length, r[2].length, 'a description per completion');
+  assert.ok(r[1].length <= 8, 'capped at 8');
+  assert.ok(r[2][0]!.includes('—') || r[2][0]!.length > 0);
+});
+
+test('suggestions stay fast', () => {
+  const start = performance.now();
+  for (const q of ['!a', '!g', '!cl', '!you', '!wi', '!re', '!s', '!t', '!m', '!np']) completions(q);
+  const elapsed = performance.now() - start;
+  assert.ok(elapsed < 100, `10 suggest calls took ${elapsed.toFixed(0)}ms`);
 });

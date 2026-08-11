@@ -57,7 +57,7 @@ function TagChip({
       className={cn(
         'inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs transition-colors',
         selected
-          ? 'border-violet-500/60 bg-violet-500/15 text-violet-300'
+          ? 'border-neutral-500 bg-neutral-800 text-neutral-100'
           : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200',
       )}
     >
@@ -83,7 +83,7 @@ function Row({ entry, tags }: { entry: SearchEntry; tags: readonly string[] }): 
         className={cn(
           'shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-xs transition-colors',
           copied
-            ? 'border-violet-500/60 bg-violet-500/15 text-violet-300'
+            ? 'border-neutral-500 bg-neutral-800 text-neutral-100'
             : 'border-neutral-800 bg-neutral-900 text-neutral-300',
         )}
       >

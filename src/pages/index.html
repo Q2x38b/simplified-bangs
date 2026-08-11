@@ -12,7 +12,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Fast DuckDuckGo-style !bang redirects, resolved at the edge.">
 <meta name="theme-color" content="#141414">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚡</text></svg>">
+<!-- Lets the browser offer this as a search engine, with !bang autocomplete. -->
+<link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="e108 !Bangs">
 <style>
   :root {
     --background: #141414;
@@ -22,7 +23,6 @@
     --border-color: #272727;
     --border-subtle: #353535;
     --kbd-background: #222;
-    --accent: #6c63ff;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
@@ -45,7 +45,7 @@
     border: 1px solid var(--border-subtle); border-radius: 6px; outline: none;
   }
   input:focus-visible { border-color: var(--text-secondary); }
-  input.saved { border-color: var(--accent); }
+  input.saved { border-color: var(--text-secondary); }
   /*
     Scoped to the id, not `button`. The search modal portals into this same
     document, so a bare element selector here would restyle every button inside
@@ -62,7 +62,7 @@
   #copy-button .check { display: none; }
   #copy-button.copied .check { display: block; }
   #copy-button.copied .clip { display: none; }
-  #copy-button.copied { border-color: var(--accent); color: var(--accent); }
+  #copy-button.copied { border-color: var(--text-secondary); color: var(--foreground); }
   .footer-search {
     display: inline-flex; align-items: center; gap: 6px;
     margin: 0 4px; padding: 0; border: none; background: none; cursor: pointer;

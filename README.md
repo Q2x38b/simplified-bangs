@@ -98,6 +98,24 @@ Where a site has no reliable search URL, the template uses a site-scoped
 DuckDuckGo query (`?q={{{s}}}+site%3Aexample.com`) rather than dropping the
 user's query on the floor.
 
+## Address-bar autocomplete
+
+`/opensearch.xml` registers the site as a search engine and points at
+`/suggest?q=`, an edge function that completes bang triggers as you type: `!cl`
+offers `!claude`. It binary-searches a trigger-sorted index compiled into the
+function (219 KB gzipped), ranks by relevance with exact matches first, and
+preserves any text typed before the bang.
+
+It answers **only** when a bang token is being typed at the end of the query.
+The browser sends every keystroke in the address bar, so anything that isn't a
+bang gets an empty list, is never logged, and is returned `no-store` so it
+cannot land in a shared cache. Responses that do contain suggestions are
+cacheable — a trigger prefix is not personal.
+
+Browser support is uneven and worth knowing: Firefox uses it fully; Chromium
+only in keyword mode (type the engine keyword, then Tab) unless this is the
+default engine; Safari has no OpenSearch support at all.
+
 ## Analytics
 
 Off by default and entirely optional. Because a bang is a 302 from the edge, no
