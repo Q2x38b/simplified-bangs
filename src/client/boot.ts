@@ -11,10 +11,11 @@
  * `DOMContentLoaded`. The bundled hot map covers the most-used triggers; a
  * miss lazily fetches the full map.
  */
-import type { RedirectMap } from '../lib/types.js';
+import type { HomeOverrides, RedirectMap, RedirectPayload } from '../lib/types.js';
 import { DEFAULT_BANG_COOKIE, parseQuery, resolve } from '../lib/resolve.js';
 
 declare const __HOT_MAP__: RedirectMap;
+declare const __HOME_OVERRIDES__: HomeOverrides;
 declare const __REDIRECT_MAP_URL__: string;
 
 function readCookie(name: string): string | undefined {
@@ -31,8 +32,10 @@ if (query?.trim()) {
   const defaultTrigger =
     localStorage.getItem(DEFAULT_BANG_COOKIE) ?? readCookie(DEFAULT_BANG_COOKIE) ?? undefined;
 
+  const lookupHome = (t: string): string | undefined => __HOME_OVERRIDES__[t];
+
   const go = (lookup: (t: string) => string | undefined): boolean => {
-    const resolution = resolve(query, lookup, { defaultTrigger });
+    const resolution = resolve(query, lookup, { defaultTrigger, lookupHome });
     if (!resolution) return false;
     location.replace(resolution.url);
     return true;
@@ -47,8 +50,8 @@ if (query?.trim()) {
   if (trigger && !__HOT_MAP__[trigger]) {
     document.documentElement.style.visibility = 'hidden';
     fetch(__REDIRECT_MAP_URL__)
-      .then((response) => response.json() as Promise<RedirectMap>)
-      .then((map) => go((t) => map[t] ?? __HOT_MAP__[t]))
+      .then((response) => response.json() as Promise<RedirectPayload>)
+      .then((payload) => go((t) => payload.map[t] ?? __HOT_MAP__[t]))
       .catch(() => go(hot))
       .finally(() => {
         document.documentElement.style.visibility = '';

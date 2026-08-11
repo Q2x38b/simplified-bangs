@@ -39,3 +39,12 @@ export interface SearchPayload {
 
 /** Trigger -> URL template. The only thing the redirect path needs. */
 export type RedirectMap = Record<string, string>;
+
+/** Trigger -> domain, only for bangs whose template origin is not their site. */
+export type HomeOverrides = Record<string, string>;
+
+/** The redirect data file: everything the service worker and fallback need. */
+export interface RedirectPayload {
+  map: RedirectMap;
+  home: HomeOverrides;
+}

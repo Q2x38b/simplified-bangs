@@ -8,7 +8,7 @@
  *
  * Requests without a `?q=` fall through to the static landing page.
  */
-import { REDIRECT_MAP } from './src/generated/redirect-map.js';
+import { HOME_OVERRIDES, REDIRECT_MAP } from './src/generated/redirect-map.js';
 import { readDefaultTrigger, resolve } from './src/lib/resolve.js';
 import { record, type EdgeContext } from './src/lib/analytics.js';
 
@@ -18,6 +18,7 @@ export const config = {
 };
 
 const lookup = (trigger: string): string | undefined => REDIRECT_MAP[trigger];
+const lookupHome = (trigger: string): string | undefined => HOME_OVERRIDES[trigger];
 
 export default function middleware(request: Request, context?: EdgeContext): Response | undefined {
   const query = new URL(request.url).searchParams.get('q');
@@ -25,6 +26,7 @@ export default function middleware(request: Request, context?: EdgeContext): Res
 
   const resolution = resolve(query, lookup, {
     defaultTrigger: readDefaultTrigger(request.headers.get('cookie')),
+    lookupHome,
   });
   if (!resolution) return undefined;
 
@@ -42,6 +44,7 @@ export default function middleware(request: Request, context?: EdgeContext): Res
       'referrer-policy': 'no-referrer',
       'x-bang-trigger': resolution.trigger,
       'x-bang-matched': String(resolution.matched),
+      'x-bang-bare': String(resolution.bare),
     },
   });
 }

@@ -8,7 +8,7 @@
  * stale it simply declines to handle the request and the edge middleware takes
  * over, so this can never make a redirect fail — only skip a round trip.
  */
-import type { RedirectMap } from '../lib/types.js';
+import type { RedirectPayload } from '../lib/types.js';
 import { DEFAULT_BANG_COOKIE, DEFAULT_TRIGGER, resolve } from '../lib/resolve.js';
 
 declare const self: ServiceWorkerGlobalScope;
@@ -20,16 +20,16 @@ declare const __PRECACHE__: readonly string[];
 
 const CACHE = `bangs-${__BUILD_ID__}`;
 
-/** Parsed map, memoised for the lifetime of this worker instance. */
-let mapPromise: Promise<RedirectMap | null> | null = null;
+/** Parsed payload, memoised for the lifetime of this worker instance. */
+let mapPromise: Promise<RedirectPayload | null> | null = null;
 
-function loadMap(): Promise<RedirectMap | null> {
+function loadMap(): Promise<RedirectPayload | null> {
   mapPromise ??= (async () => {
     try {
       const cache = await caches.open(CACHE);
       const hit = (await cache.match(__REDIRECT_MAP_URL__)) ?? (await fetch(__REDIRECT_MAP_URL__));
       if (!hit.ok) return null;
-      return (await hit.json()) as RedirectMap;
+      return (await hit.json()) as RedirectPayload;
     } catch {
       return null;
     }
@@ -73,9 +73,12 @@ async function readDefaultTrigger(): Promise<string> {
 }
 
 async function handleBang(query: string): Promise<Response | null> {
-  const map = await loadMap();
-  if (!map) return null;
-  const resolution = resolve(query, (t) => map[t], { defaultTrigger: await readDefaultTrigger() });
+  const payload = await loadMap();
+  if (!payload) return null;
+  const resolution = resolve(query, (t) => payload.map[t], {
+    defaultTrigger: await readDefaultTrigger(),
+    lookupHome: (t) => payload.home[t],
+  });
   if (!resolution) return null;
   return Response.redirect(resolution.url, 302);
 }

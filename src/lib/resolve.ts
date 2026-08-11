@@ -57,9 +57,40 @@ export function expandTemplate(template: string, terms: string): string {
   return template.replace(PLACEHOLDER, encoded);
 }
 
+/**
+ * Home page for a bang used on its own, with no search terms.
+ *
+ * The template's own origin is right for all but 32 bangs; the exceptions are
+ * the ones whose template points at a search engine with a `site:` filter
+ * rather than at the site itself, where the origin would be duckduckgo.com.
+ * Those carry an explicit domain override.
+ */
+export function homeUrl(template: string, override?: string | undefined): string | null {
+  if (override && !override.includes('{{{s}}}')) return `https://${override}`;
+  try {
+    const url = new URL(template);
+    // Six bangs put the placeholder in the hostname itself
+    // (`https://{{{s}}}.tor2web.org`). Drop that label rather than navigating to
+    // a host that still contains `{{{s}}}`.
+    if (url.host.includes('{{{s}}}')) {
+      const host = url.host
+        .split('.')
+        .filter((label) => !label.includes('{{{s}}}'))
+        .join('.');
+      if (!host.includes('.')) return null;
+      return `${url.protocol}//${host}`;
+    }
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export interface ResolveOptions {
   /** Trigger to use when the query has no bang token. */
   defaultTrigger?: string | undefined;
+  /** Domain override for a bare bang, keyed by trigger. */
+  lookupHome?: ((trigger: string) => string | undefined) | undefined;
 }
 
 export interface Resolution {
@@ -73,6 +104,8 @@ export interface Resolution {
    * searches for "!notabang foo" instead of just "foo".
    */
   matched: boolean;
+  /** True when the bang was used alone and we navigated to the site itself. */
+  bare: boolean;
 }
 
 /**
@@ -91,7 +124,20 @@ export function resolve(
 
   if (trigger) {
     const template = lookup(trigger);
-    if (template) return { url: expandTemplate(template, terms), trigger, matched: true };
+    if (template) {
+      // A template with no placeholder is navigational already — `!nbang` means
+      // one specific page, whether or not terms were typed.
+      if (!template.includes('{{{s}}}')) {
+        return { url: template, trigger, matched: true, bare: !terms };
+      }
+      // Bare bang: `!gh` on its own goes to github.com rather than searching
+      // GitHub for an empty string.
+      if (!terms) {
+        const home = homeUrl(template, options.lookupHome?.(trigger));
+        if (home) return { url: home, trigger, matched: true, bare: true };
+      }
+      return { url: expandTemplate(template, terms), trigger, matched: true, bare: false };
+    }
   }
 
   // No bang, or a bang we don't recognise. Fall back to the default engine and
@@ -103,6 +149,7 @@ export function resolve(
     url: expandTemplate(fallbackTemplate, trigger ? raw : terms),
     trigger: fallbackTrigger,
     matched: false,
+    bare: false,
   };
 }
 

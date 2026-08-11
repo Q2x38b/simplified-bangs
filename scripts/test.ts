@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { RedirectMap, SearchEntry, SearchPayload } from '../src/lib/types.ts';
-import { expandTemplate, parseQuery, readDefaultTrigger, resolve } from '../src/lib/resolve.ts';
+import { expandTemplate, homeUrl, parseQuery, readDefaultTrigger, resolve } from '../src/lib/resolve.ts';
 import { deriveTags } from '../src/lib/tags.ts';
 import { buildIndex, search } from '../src/lib/search.ts';
 import { loadDataset } from './dataset.ts';
@@ -15,8 +15,18 @@ import { loadDataset } from './dataset.ts';
 const { bangs, overridden } = await loadDataset();
 const map: RedirectMap = Object.fromEntries(bangs.map((b) => [b.t, b.u]));
 const lookup = (t: string): string | undefined => map[t];
+
+const stripWww = (h: string): string => h.replace(/^www\./, '').toLowerCase();
+const homeMap: Record<string, string> = {};
+for (const b of bangs) {
+  const domain = b.d.replace(/^https?:\/\//, '').split('/')[0] ?? '';
+  if (!domain) continue;
+  try { if (stripWww(new URL(b.u).host) === stripWww(domain)) continue; } catch { continue; }
+  homeMap[b.t] = domain.replace(/\/+$/, '');
+}
+const lookupHome = (t: string): string | undefined => homeMap[t];
 const go = (q: string, defaultTrigger?: string): string =>
-  resolve(q, lookup, defaultTrigger ? { defaultTrigger } : {})!.url;
+  resolve(q, lookup, { lookupHome, ...(defaultTrigger ? { defaultTrigger } : {}) })!.url;
 
 test('parses a leading bang', () => {
   assert.deepEqual(parseQuery('!yt cats'), { trigger: 'yt', terms: 'cats', raw: '!yt cats' });
@@ -215,4 +225,66 @@ test('popular bangs win ties', () => {
 test('multi-word queries still resolve', () => {
   assert.ok(search(index, 'hugging face').some((e) => e[0] === 'hf'));
   assert.ok(search(index, 'stack overflow').some((e) => e[0] === 'so'));
+});
+
+// ---------------------------------------------------------------------------
+// Bare bang: a trigger with no terms goes to the site itself
+// ---------------------------------------------------------------------------
+
+test('a bare bang navigates to the site, not an empty search', () => {
+  assert.equal(go('!gh'), 'https://github.com');
+  assert.equal(go('!yt'), 'https://www.youtube.com');
+  assert.equal(go('!npmx'), 'https://npmx.dev');
+  assert.equal(go('!claude'), 'https://claude.ai');
+  assert.equal(go('!so'), 'https://stackoverflow.com');
+});
+
+test('a bare bang whose template is a site-scoped search uses the real site', () => {
+  // !bun's template searches DuckDuckGo with site:bun.sh — the origin would be
+  // duckduckgo.com, which is not where the user wants to land.
+  assert.equal(go('!bun'), 'https://bun.sh');
+  assert.equal(go('!tailwind'), 'https://tailwindcss.com');
+  assert.equal(go('!vercel'), 'https://vercel.com');
+});
+
+test('trailing whitespace still counts as bare', () => {
+  assert.equal(go('!gh   '), 'https://github.com');
+});
+
+test('bare is flagged on the resolution', () => {
+  assert.equal(resolve('!gh', lookup, { lookupHome })!.bare, true);
+  assert.equal(resolve('!gh issues', lookup, { lookupHome })!.bare, false);
+  assert.equal(resolve('hello', lookup, { lookupHome })!.bare, false);
+});
+
+test('a bang with terms is unaffected', () => {
+  assert.ok(go('!gh esbuild').includes('github.com/search'));
+  assert.ok(go('!yt cats').includes('search_query=cats'));
+});
+
+test('an unknown bare bang still falls back to search', () => {
+  const url = go('!notarealbang');
+  assert.ok(url.includes('google.com'));
+  assert.ok(url.includes('notarealbang'));
+});
+
+test('homeUrl prefers an explicit override', () => {
+  assert.equal(homeUrl('https://duckduckgo.com/?q={{{s}}}+site%3Abun.sh', 'bun.sh'), 'https://bun.sh');
+  assert.equal(homeUrl('https://example.com/search?q={{{s}}}'), 'https://example.com');
+  assert.equal(homeUrl('not a url'), null);
+});
+
+test('every bang produces a usable bare destination', () => {
+  const bad: string[] = [];
+  for (const b of bangs) {
+    const r = resolve(`!${b.t}`, lookup, { lookupHome });
+    if (!r || !/^https?:\/\//.test(r.url) || r.url.includes('{{{s}}}')) bad.push(`!${b.t} -> ${r?.url}`);
+  }
+  assert.deepEqual(bad.slice(0, 10), []);
+});
+
+test('a placeholder in the hostname is dropped, not navigated to', () => {
+  assert.equal(go('!tor'), 'https://tor2web.org');
+  assert.equal(go('!wpblog'), 'http://wordpress.com');
+  assert.equal(homeUrl('https://{{{s}}}.example.com/'), 'https://example.com');
 });

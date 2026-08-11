@@ -43,10 +43,19 @@ scripts/test.ts            Resolver, dataset and search tests
 scripts/probe-https.ts     Re-probes hosts for HTTPS support
 ```
 
+## Bare bangs
+
+A bang used on its own goes to the site rather than searching it for nothing:
+`!gh` → github.com, `!claude` → claude.ai. The template's own origin is right
+for all but 32 bangs — the ones whose template is a site-scoped search, where
+the origin would be duckduckgo.com — and those carry an explicit domain
+override (0.3 KB gzipped). Six bangs put the placeholder in the hostname
+(`{{{s}}}.tor2web.org`); that label is dropped rather than navigated to.
+
 ## Search
 
-Press <kbd>⌘K</kbd> (or <kbd>/</kbd>, or click the search bar) anywhere on the
-landing page. It's a shadcn/ui command palette — React, Radix and cmdk — that is
+Press <kbd>⌘K</kbd> (or <kbd>/</kbd>, or the "bang search" link in the footer)
+anywhere on the landing page. It's a shadcn/ui command palette — React, Radix and cmdk — that is
 **lazily loaded**: ~88 KB gzipped fetched only when you actually open it, and
 never on the redirect path, which is answered at the edge with no client code at
 all. `/search` redirects to `/#search`, which deep-links straight into the modal.
