@@ -1,7 +1,11 @@
 /**
  * Landing-page interactivity. Deferred — nothing here is on the redirect path.
  */
+import { inject } from '@vercel/analytics';
 import { DEFAULT_BANG_COOKIE, DEFAULT_TRIGGER } from '../lib/resolve.js';
+
+// Initialize Vercel Web Analytics
+inject();
 
 declare const __SEARCH_MODAL_JS__: string;
 declare const __SEARCH_MODAL_CSS__: string;
