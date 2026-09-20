@@ -24,9 +24,12 @@ const CACHE = `bangs-${__BUILD_ID__}`;
 let mapPromise: Promise<RedirectPayload | null> | null = null;
 
 function loadMap(): Promise<RedirectPayload | null> {
+  // `??=` means only the first bang after the worker wakes pays the 0.89 MB
+  // JSON.parse; every later one reuses the object already in memory.
   mapPromise ??= (async () => {
     try {
       const cache = await caches.open(CACHE);
+      // Read the copy off disk; only touch the network if it was evicted.
       const hit = (await cache.match(__REDIRECT_MAP_URL__)) ?? (await fetch(__REDIRECT_MAP_URL__));
       if (!hit.ok) return null;
       return (await hit.json()) as RedirectPayload;
@@ -77,15 +80,21 @@ async function readDefaultTrigger(): Promise<string> {
 async function handleBang(query: string): Promise<Response | null> {
   const payload = await loadMap();
   if (!payload) return null;
+  // The same `resolve()` the edge middleware calls, against a local copy of the
+  // same map: parseQuery() splits `!yt cats` into trigger and terms, the map
+  // lookup finds the template, expandTemplate() fills in `{{{s}}}`.
   const resolution = resolve(query, (t) => payload.map[t], {
     defaultTrigger: await readDefaultTrigger(),
     lookupHome: (t) => payload.home[t],
   });
   if (!resolution) return null;
+  // An ordinary 302, manufactured here — it never crossed the network.
   return Response.redirect(resolution.url, 302);
 }
 
 self.addEventListener('fetch', (event) => {
+  // Only a bang navigation is ours. Returning without calling respondWith()
+  // leaves the request alone, so assets and other pages are untouched.
   const request = event.request;
   if (request.mode !== 'navigate' || request.method !== 'GET') return;
 
@@ -95,6 +104,7 @@ self.addEventListener('fetch', (event) => {
   const query = url.searchParams.get('q');
   if (!query?.trim()) return;
 
+  // respondWith() tells the browser: don't send this to the network, I'll answer it.
   event.respondWith(
     // Any failure here falls back to the network, where the edge middleware
     // produces exactly the same redirect.
